@@ -1,4 +1,4 @@
-# gobblet_gobblers
+# Gobblet Gobblers
 
 Week 5 - Lab submission for TECHIN 509
 
