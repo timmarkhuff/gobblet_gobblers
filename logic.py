@@ -2,7 +2,7 @@ class Game:
     def __init__(self):
         # create the gobblers
         number_of_gobblers = 6
-        self.players = []
+        self.players_gobblers = []
         for player in range(2): # number of players
             size = 1
             gobblers = []
@@ -10,7 +10,7 @@ class Game:
                 gobbler = Gobbler(player, size)
                 gobblers.append(gobbler)
                 size += 1
-            self.players.append(gobblers)
+            self.players_gobblers.append(gobblers)
 
         # initialize some values
         self.current_player = 0
@@ -44,7 +44,7 @@ class Game:
 
         # don't allow the current player to select the other
         # player's sidelined gobblers
-        gobbler = self.players[player][gobbler_idx]
+        gobbler = self.players_gobblers[player][gobbler_idx]
         if not gobbler.board_position and gobbler.player != player:
             return False
         
