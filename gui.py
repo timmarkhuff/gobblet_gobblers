@@ -28,23 +28,23 @@ class Board:
         x1 = self.margin_width
         x2 = self.main_area_width + self.margin_width
         y = 0
-        for _ in range(4):
+        for _ in range(2):
             y += self.main_area_height/3
-            cv2.line(self.blank_board, (x1, round(y)), (x2, round(y)), (0,255,0), 4)
+            cv2.line(self.blank_board, (x1, round(y)), (x2, round(y)), (0,255,0), 6)
         
         # draw the lines (vertical)
         x = self.margin_width
         y1 = 0
         y2 = self.main_area_height
         for _ in range(4):
-            cv2.line(self.blank_board, (round(x), y1), (round(x), y2), (0,0,255), 4)
+            cv2.line(self.blank_board, (round(x), y1), (round(x), y2), (0,0,255), 6)
             x += self.main_area_width / 3
 
         self.static_board = self.blank_board.copy()
 
         # gobbler parameters
         self.max_gobbler_radius = 42
-        self.min_gobbler_radius = 30
+        self.min_gobbler_radius = 25
         self.gobbler_radius_range = self.max_gobbler_radius - self.min_gobbler_radius
 
         # add some display parameters to gobblers
@@ -83,35 +83,55 @@ class Board:
     def draw_dynamic_board(self):
         self.dynamic_board = self.static_board.copy()
         gobbler = self.game.selected_gobbler
-        offset = 7
-        center = (round(gobbler.x + offset), round(gobbler.y - offset))
         radius = round(gobbler.radius * 1.2)
+
+        # draw a transparent shadow
+        overlay = self.static_board.copy()
+        center = (round(gobbler.x), round(gobbler.y))
+        shadow = (0,0,0)
+        cv2.circle(overlay, center, radius, shadow, -1)
+        self.dynamic_board = cv2.addWeighted(self.dynamic_board, .9, overlay, .1, 0)
+
+        # draw the selected gobbler
+        offset = 8
+        offset_center = (round(gobbler.x + offset), round(gobbler.y - offset))
         color = gobbler.color
         white = (255,255,255)
-        cv2.circle(self.dynamic_board, center, radius, color, -1) 
-        cv2.circle(self.dynamic_board, center, radius, white, 2) 
+        cv2.circle(self.dynamic_board, offset_center, radius, color, -1) 
+        cv2.circle(self.dynamic_board, offset_center, radius, white, 2) 
+
+        # put text on the gobbler
         text = str(gobbler.size)
         pos = (round(gobbler.x - 6 + offset), round(gobbler.y + 4 - offset))
         cv2.putText(self.dynamic_board, text, pos, cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, white, 1, cv2.LINE_AA)
 
     def draw_cursor(self):
+        # copy the static board to get a fresh copy to draw on
         self.dynamic_board = self.static_board.copy()
-        x = self.hover_coordinate_x
-        y = self.hover_coordinate_y
 
+        # determine the color of the player
         if self.game.current_player == 0:
             color = self.blue
         else:
             color = self.orange
 
+        # define the lines of the crosshairs
+        x = self.hover_coordinate_x
+        y = self.hover_coordinate_y
         cursor_width = 20
         cursor_thickness = 6
-        pt1 = (x - cursor_width, y)
-        pt2 = (x + cursor_width, y)
-        cv2.line(self.dynamic_board, pt1, pt2, color, cursor_thickness)
-        pt1 = (x, y - cursor_width)
-        pt2 = (x, y + cursor_width)
-        cv2.line(self.dynamic_board, pt1, pt2, color, cursor_thickness)
+        pt1_hor = (x - cursor_width, y)
+        pt2_hor = (x + cursor_width, y)
+        pt1_vert = (x, y - cursor_width)
+        pt2_vert = (x, y + cursor_width)
+
+        # white background lines
+        border_thickness = 3
+        cv2.line(self.dynamic_board, pt1_hor, pt2_hor, (255,255,255), cursor_thickness + border_thickness)
+        cv2.line(self.dynamic_board, pt1_vert, pt2_vert, (255,255,255), cursor_thickness + border_thickness)
+        # colored foreground lines
+        cv2.line(self.dynamic_board, pt1_hor, pt2_hor, color, cursor_thickness)
+        cv2.line(self.dynamic_board, pt1_vert, pt2_vert, color, cursor_thickness)
 
     def draw_winner(self):
         x1 = self.margin_width + self.main_area_width / 6
@@ -120,7 +140,7 @@ class Board:
         x2 = self.margin_width + self.main_area_width - self.main_area_width / 6
         y2 = y1 + 100
         pt2 = (round(x2), round(y2))
-        cv2.rectangle(self.dynamic_board, pt1, pt2, (100,100,100), -1)
+        cv2.rectangle(self.dynamic_board, pt1, pt2, (110,110,110), -1)
         cv2.rectangle(self.dynamic_board, pt1, pt2, (0,0,0), 2)
 
         if self.winner == 0:
@@ -130,10 +150,14 @@ class Board:
 
         text = f'Player {self.winner} is the winner!'
         cv2.putText(self.dynamic_board, text, (round(x1 + 34), round(y1 + 35)), cv2.FONT_HERSHEY_COMPLEX_SMALL, .75, color, 1, cv2.LINE_AA)
-        text = 'Press any key to continue'
+        text = 'Press any key to continue.'
         cv2.putText(self.dynamic_board, text, (round(x1 + 34), round(y1 + 65)), cv2.FONT_HERSHEY_COMPLEX_SMALL, .75, color, 1, cv2.LINE_AA)
 
     def click_event(self, event, x, y, flags, param):
+        """
+        Callback function used by the main loop to track clicks
+        and hovering.
+        """
         self.hover_coordinate_x, self.hover_coordinate_y = x, y
 
         if event == cv2.EVENT_LBUTTONDOWN:
@@ -152,6 +176,11 @@ class Board:
                         self.draw_static_board()
 
     def check_for_clicked_gobbler(self, x, y):
+        """
+        Given x and y coorindates, return the size (1-6) of 
+        the gobbler that was clicked.
+        Return None if no gobbler was clicked.
+        """
         # get a list of the current player's gobblers
         current_players_gobblers = [g for g in self.game.gobblers if g.player == self.game.current_player]
         # sort them such that the bigger gobblers are listed first
@@ -167,6 +196,12 @@ class Board:
         return None
 
     def check_board_region(self, x, y):
+        """
+        Given an x and y coordinate, return the coresponding board 
+        region (1-9).
+        Return None if the coordinate is not on a board region, e.g.
+        on the sideline
+        """
         y_start = 0
         y_end = y_start + self.main_area_height / 3
         region = 1
@@ -185,6 +220,10 @@ class Board:
         return None
 
     def place_gobbler_on_board(self, gobbler, provided_region):
+        """
+        Update the x and y coordinate of a gobbler such that it
+        lies in the center of the provided board region
+        """
         y = self.main_area_height / 6
         region = 1
         for column in range(3):
