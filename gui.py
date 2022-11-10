@@ -239,7 +239,6 @@ class Board:
 
 def main():
     board = Board(Game())
-    # board.game.selected_gobbler = board.game.gobblers[8]
     board.draw_static_board()
 
     while True:
