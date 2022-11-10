@@ -30,14 +30,14 @@ class Board:
         y = 0
         for _ in range(4):
             y += self.main_area_height/3
-            cv2.line(self.blank_board, (x1, round(y)), (x2, round(y)), (0,255,0), 2)
+            cv2.line(self.blank_board, (x1, round(y)), (x2, round(y)), (0,255,0), 4)
         
         # draw the lines (vertical)
         x = self.margin_width
         y1 = 0
         y2 = self.main_area_height
         for _ in range(4):
-            cv2.line(self.blank_board, (round(x), y1), (round(x), y2), (0,0,255), 2)
+            cv2.line(self.blank_board, (round(x), y1), (round(x), y2), (0,0,255), 4)
             x += self.main_area_width / 3
 
         self.static_board = self.blank_board.copy()
@@ -114,30 +114,50 @@ class Board:
         cv2.line(self.dynamic_board, pt1, pt2, color, cursor_thickness)
 
     def draw_winner(self):
+        x1 = self.margin_width + self.main_area_width / 6
+        y1 = self.main_area_height / 5
+        pt1 = (round(x1), round(y1))
+        x2 = self.margin_width + self.main_area_width - self.main_area_width / 6
+        y2 = y1 + 100
+        pt2 = (round(x2), round(y2))
+        cv2.rectangle(self.dynamic_board, pt1, pt2, (100,100,100), -1)
+        cv2.rectangle(self.dynamic_board, pt1, pt2, (0,0,0), 2)
+
+        if self.winner == 0:
+            color = self.blue
+        else:
+            color = self.orange
+
         text = f'Player {self.winner} is the winner!'
-        cv2.putText(self.dynamic_board, text, (100, 100), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255,0,0), 1, cv2.LINE_AA)
+        cv2.putText(self.dynamic_board, text, (round(x1 + 34), round(y1 + 35)), cv2.FONT_HERSHEY_COMPLEX_SMALL, .75, color, 1, cv2.LINE_AA)
+        text = 'Press any key to continue'
+        cv2.putText(self.dynamic_board, text, (round(x1 + 34), round(y1 + 65)), cv2.FONT_HERSHEY_COMPLEX_SMALL, .75, color, 1, cv2.LINE_AA)
 
     def click_event(self, event, x, y, flags, param):
         self.hover_coordinate_x, self.hover_coordinate_y = x, y
 
         if event == cv2.EVENT_LBUTTONDOWN:
             if self.game.selected_gobbler is None:
-                clicked_gobbler = self._check_for_clicked_gobbler(x, y)
+                clicked_gobbler = self.check_for_clicked_gobbler(x, y)
                 if clicked_gobbler:
                     self.game.select_gobbler(clicked_gobbler)
                     self.draw_static_board()
             else:
-                clicked_region = self._check_board_region(x, y)
+                clicked_region = self.check_board_region(x, y)
                 if clicked_region:
                     gobbler = self.game.selected_gobbler
                     success, self.winner = self.game.place_selected_gobbler(clicked_region)
                     if success:
-                        self._place_gobbler_on_board(gobbler, clicked_region)
+                        self.place_gobbler_on_board(gobbler, clicked_region)
                         self.draw_static_board()
 
-
-    def _check_for_clicked_gobbler(self, x, y):
+    def check_for_clicked_gobbler(self, x, y):
+        # get a list of the current player's gobblers
         current_players_gobblers = [g for g in self.game.gobblers if g.player == self.game.current_player]
+        # sort them such that the bigger gobblers are listed first
+        # this is to ensure that they are selected when a gobbler of a smaller size
+        # and same player is present beneath
+        current_players_gobblers = sorted(current_players_gobblers, key = lambda x: x.size, reverse=True)
         for gobbler in current_players_gobblers:
             a = x - gobbler.x
             b = y - gobbler.y
@@ -146,7 +166,7 @@ class Board:
                 return gobbler.size
         return None
 
-    def _check_board_region(self, x, y):
+    def check_board_region(self, x, y):
         y_start = 0
         y_end = y_start + self.main_area_height / 3
         region = 1
@@ -164,7 +184,7 @@ class Board:
             y_end += self.main_area_height / 3
         return None
 
-    def _place_gobbler_on_board(self, gobbler, provided_region):
+    def place_gobbler_on_board(self, gobbler, provided_region):
         y = self.main_area_height / 6
         region = 1
         for column in range(3):
