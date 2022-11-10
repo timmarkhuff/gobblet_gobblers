@@ -2,15 +2,13 @@ class Game:
     def __init__(self):
         # create the gobblers
         number_of_gobblers = 6
-        self.players_gobblers = []
+        self.gobblers = []
         for player in range(2): # number of players
             size = 1
-            gobblers = []
             for gobbler in range(number_of_gobblers):
                 gobbler = Gobbler(player, size)
-                gobblers.append(gobbler)
+                self.gobblers.append(gobbler)
                 size += 1
-            self.players_gobblers.append(gobblers)
 
         # initialize some values
         self.current_player = 0
@@ -29,26 +27,21 @@ class Game:
             [6,4,2],
         ]
 
-    def select_gobbler(self, player: int, gobbler_idx: int) -> bool:
+    def select_gobbler(self, gobbler_size: int) -> bool:
         # don't allow the player to select a gobbler if one is
         # already selected
         if self.selected_gobbler:
             return False
 
         # convert to integer and check if the value is valid (between 0 and 5)
-        gobbler_idx = self._convert_input(gobbler_idx, 0, 5)
+        gobbler_idx = self._convert_input(gobbler_size, 0, 5)
 
         # if the value is invalid, return False
         if gobbler_idx is None:
             return False
-
-        # don't allow the current player to select the other
-        # player's sidelined gobblers
-        gobbler = self.players_gobblers[player][gobbler_idx]
-        if not gobbler.board_position and gobbler.player != player:
-            return False
         
         # gobblers can only be selected if they are on top
+        gobbler = [g for g in self.gobblers if g.player == self.current_player][gobbler_idx]
         if not gobbler.is_on_top:
             return False
 

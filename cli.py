@@ -12,7 +12,7 @@ while True:
         while winner is None:
             text = f'Player {game.current_player}, select a gobbler to move (1-6): '
             selected_gobbler_size = input(text)
-            success = game.select_gobbler(game.current_player, selected_gobbler_size)
+            success = game.select_gobbler(selected_gobbler_size)
             if success:
                 break
             else:
