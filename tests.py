@@ -9,22 +9,22 @@ class TestLogic(unittest.TestCase):
 
     def test_select_gobbler_from_sideline(self):
         game = Game()
-        success = game.select_gobbler(game.current_player, 3)
+        success = game.select_gobbler(3)
         self.assertEqual(success, True)
 
     def test_select_gobbler_from_board_success(self):
         game = Game()
 
         # player 0 plays
-        _ = game.select_gobbler(game.current_player, 4)
+        _ = game.select_gobbler(4)
         _, _ = game.place_selected_gobbler(1)
 
         # player 1 plays
-        _ = game.select_gobbler(game.current_player, 3)
+        _ = game.select_gobbler(3)
         _, _ = game.place_selected_gobbler(2)
 
         # player 0 picks up gobbler from board
-        success = game.select_gobbler(game.current_player, 4)
+        success = game.select_gobbler(4)
 
         self.assertEqual(success, True)
 
@@ -32,15 +32,15 @@ class TestLogic(unittest.TestCase):
         game = Game()
 
         # player 0 plays
-        _ = game.select_gobbler(game.current_player, 4)
+        _ = game.select_gobbler(4)
         _, _ = game.place_selected_gobbler(1)
 
         # player 1 plays
-        _ = game.select_gobbler(game.current_player, 5)
+        _ = game.select_gobbler(5)
         _, _ = game.place_selected_gobbler(1)
 
         # player 0 picks up gobbler from board
-        success = game.select_gobbler(game.current_player, 4)
+        success = game.select_gobbler(4)
 
         self.assertEqual(success, False)
 
@@ -51,7 +51,7 @@ class TestLogic(unittest.TestCase):
         """
         game = Game()
 
-        _ = game.select_gobbler(game.current_player, 4)
+        _ = game.select_gobbler(4)
         success, _ = game.place_selected_gobbler(1)
 
         self.assertEqual(success, True)
@@ -64,11 +64,11 @@ class TestLogic(unittest.TestCase):
         game = Game()
 
         # player 0 plays
-        _ = game.select_gobbler(game.current_player, 4)
+        _ = game.select_gobbler(4)
         _, _ = game.place_selected_gobbler(1)
 
         # player 1 plays
-        _ = game.select_gobbler(game.current_player, 3)
+        _ = game.select_gobbler(3)
         success, _ = game.place_selected_gobbler(1)
 
         self.assertEqual(success, False)
@@ -112,7 +112,7 @@ class TestLogic(unittest.TestCase):
         for play in plays:
             selected_gobbler_size = play[0]
             board_position = play[1]
-            _ = game.select_gobbler(game.current_player, selected_gobbler_size)
+            _ = game.select_gobbler(selected_gobbler_size)
             _, winner = game.place_selected_gobbler(board_position)
 
         self.assertEqual(winner, 0)
@@ -136,7 +136,7 @@ class TestLogic(unittest.TestCase):
         for play in plays:
             selected_gobbler_size = play[0]
             board_position = play[1]
-            _ = game.select_gobbler(game.current_player, selected_gobbler_size)
+            _ = game.select_gobbler(selected_gobbler_size)
             _, winner = game.place_selected_gobbler(board_position)
 
         self.assertEqual(winner, 1)
@@ -145,13 +145,13 @@ class TestLogic(unittest.TestCase):
         game = Game()
 
         # player 0 plays
-        _ = game.select_gobbler(game.current_player, 2)
+        _ = game.select_gobbler(2)
         _, _ = game.place_selected_gobbler(1)
 
         before = game.board[0][0].is_on_top
 
         # player 1 plays
-        _ = game.select_gobbler(game.current_player, 3)
+        _ = game.select_gobbler(3)
         _, _ = game.place_selected_gobbler(1)
 
         after = game.board[0][0].is_on_top
