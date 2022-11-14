@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 from math import sqrt
-from logic import Game
+from logic import Game, Gobbler
 
 class Board:
     def __init__(self, game):
@@ -10,13 +10,16 @@ class Board:
         self.winner = None
         self.blue = (255,0,0)
         self.orange = (0,191,255)
-        self.hover_coordinate_x = 0
-        self.hover_coordinate_y = 0
 
         # board dimensions
         self.main_area_width = 500
         self.main_area_height = 500
         self.margin_width = 140
+
+        # coordinates
+        self.hover_coordinate_x = round(self.margin_width + self.main_area_width / 2)
+        self.hover_coordinate_y = round(self.main_area_height / 2)
+        self.click_coordinate_x, self.click_coordinate_y = None, None
 
         # construct the blank board
         overall_dimensions = (self.main_area_height, self.main_area_width + 2 * self.margin_width)
@@ -66,7 +69,7 @@ class Board:
             gobbler.radius = (gobbler.size - 1) * self.gobbler_radius_range / 6  \
                         + self.min_gobbler_radius
 
-    def draw_static_board(self) -> np.ndarray: 
+    def draw_static_board(self): 
         self.static_board = self.blank_board.copy()
         gobblers_sorted = sorted(self.game.gobblers, key=lambda x: x.size, reverse=False)
         for gobbler in gobblers_sorted:
@@ -81,6 +84,10 @@ class Board:
         self.dynamic_board = self.static_board.copy()     
 
     def draw_dynamic_board(self):
+        if self.game.selected_gobbler is None:
+            self.draw_cursor()
+            return
+
         self.dynamic_board = self.static_board.copy()
         gobbler = self.game.selected_gobbler
         radius = round(gobbler.radius * 1.2)
@@ -158,29 +165,28 @@ class Board:
         Callback function used by the main loop to track clicks
         and hovering.
         """
+        # update the hover coordinates
         self.hover_coordinate_x, self.hover_coordinate_y = x, y
 
-        if event == cv2.EVENT_LBUTTONDOWN:
-            if self.game.selected_gobbler is None:
-                clicked_gobbler = self.check_for_clicked_gobbler(x, y)
-                if clicked_gobbler:
-                    self.game.select_gobbler(clicked_gobbler)
-                    self.draw_static_board()
-            else:
-                clicked_region = self.check_board_region(x, y)
-                if clicked_region:
-                    gobbler = self.game.selected_gobbler
-                    success, self.winner = self.game.place_selected_gobbler(clicked_region)
-                    if success:
-                        self.place_gobbler_on_board(gobbler, clicked_region)
-                        self.draw_static_board()
+        # update the coordinates of the selected gobbler
+        if self.game.selected_gobbler is not None:
+            self.game.selected_gobbler.x = self.hover_coordinate_x
+            self.game.selected_gobbler.y = self.hover_coordinate_y
 
-    def check_for_clicked_gobbler(self, x, y):
+        # check for clicks
+        if event == cv2.EVENT_LBUTTONDOWN:
+            self.click_coordinate_x, self.click_coordinate_y = x, y
+
+    def check_for_clicked_gobbler(self) -> int:
         """
         Given x and y coorindates, return the size (1-6) of 
         the gobbler that was clicked.
         Return None if no gobbler was clicked.
         """
+
+        x = self.click_coordinate_x
+        y = self.click_coordinate_y
+
         # get a list of the current player's gobblers
         current_players_gobblers = [g for g in self.game.gobblers if g.player == self.game.current_player]
         # sort them such that the bigger gobblers are listed first
@@ -195,13 +201,17 @@ class Board:
                 return gobbler.size
         return None
 
-    def check_board_region(self, x, y):
+    def check_board_region(self) ->int:
         """
         Given an x and y coordinate, return the coresponding board 
         region (1-9).
         Return None if the coordinate is not on a board region, e.g.
         on the sideline
         """
+
+        x = self.click_coordinate_x
+        y = self.click_coordinate_y
+
         y_start = 0
         y_end = y_start + self.main_area_height / 3
         region = 1
@@ -219,7 +229,7 @@ class Board:
             y_end += self.main_area_height / 3
         return None
 
-    def place_gobbler_on_board(self, gobbler, provided_region):
+    def place_gobbler_on_board(self, gobbler: Gobbler, provided_region: int) -> None:
         """
         Update the x and y coordinate of a gobbler such that it
         lies in the center of the provided board region
@@ -236,19 +246,35 @@ class Board:
                 region += 1
             y += self.main_area_height / 3
 
-
 def main():
     board = Board(Game())
     board.draw_static_board()
 
     while True:
-        # update the cooridinates of the selected gobbler
-        if board.game.selected_gobbler is not None:
-            board.game.selected_gobbler.x = board.hover_coordinate_x
-            board.game.selected_gobbler.y = board.hover_coordinate_y
-            board.draw_dynamic_board()
-        else:
-            board.draw_cursor()
+        # handle clicks
+        # place the gobbler
+        if board.click_coordinate_x is not None and  \
+           board.game.selected_gobbler is not None:
+            selected_region = board.check_board_region()
+            if selected_region:
+                gobbler_to_place = board.game.selected_gobbler
+                success, board.winner = board.game.place_selected_gobbler(selected_region)
+                if success:
+                    board.place_gobbler_on_board(gobbler_to_place, selected_region)
+                    board.draw_static_board()
+        # select a gobbler
+        elif board.click_coordinate_x is not None and  \
+           board.game.selected_gobbler is None:
+            gobbler_size = board.check_for_clicked_gobbler()
+            if gobbler_size:
+                success = board.game.select_gobbler(gobbler_size)                
+                if success:
+                    board.draw_static_board()
+        
+        # draw the dynamic board
+        board.draw_dynamic_board()
+
+        # check for a winner
         if board.winner is not None:
             board.draw_static_board()
             board.draw_winner()
@@ -257,13 +283,16 @@ def main():
             board = Board(Game())
             board.draw_static_board()
 
+        # show the results
         cv2.imshow('Gobblet Gobblers', board.dynamic_board)
         cv2.setMouseCallback("Gobblet Gobblers", board.click_event)
 
+        # check for pressed keys
         key = cv2.waitKey(30)
         if key == ord('q'):
             break
     
+    # clean up
     cv2.destroyAllWindows()
 
 if __name__ == '__main__':
