@@ -27,8 +27,8 @@ class Bot(Player):
 
     def select_gobbler(self):
         available_gobblers = [g for g in self.game.gobblers if g.player == self.player_number and g.is_on_top]
-        random_range = random.randint(0, len(available_gobblers) - 1)
-        return available_gobblers[random_range].size
+        random_idx = random.randint(0, len(available_gobblers) - 1)
+        return available_gobblers[random_idx].size
 
     def select_board_position(self):
         return random.randint(0, 9)
