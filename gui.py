@@ -1,7 +1,9 @@
 import cv2
 import numpy as np
 from math import sqrt
-from logic import Game, Gobbler
+from logic import Game, Gobbler, GameStats
+from matplotlib import pyplot as plt
+import io
 
 class Board:
     def __init__(self, game):
@@ -10,6 +12,8 @@ class Board:
         self.winner = None
         self.blue = (255,0,0)
         self.orange = (0,191,255)
+        self.blue_rgb = self._bgr2rgbnorm(self.blue)
+        self.orange_rgb = self._bgr2rgbnorm(self.orange)
 
         # board dimensions
         self.main_area_width = 500
@@ -70,6 +74,10 @@ class Board:
                         + self.min_gobbler_radius
 
     def draw_static_board(self): 
+        """
+        Draw the elements on the board that change only occasionally, 
+        e.g. the gobblers that have been placed on the board
+        """
         self.static_board = self.blank_board.copy()
         gobblers_sorted = sorted(self.game.gobblers, key=lambda x: x.size, reverse=False)
         for gobbler in gobblers_sorted:
@@ -81,9 +89,13 @@ class Board:
                 text = str(gobbler.size)
                 pos = (round(gobbler.x - 6), round(gobbler.y + 4))
                 cv2.putText(self.static_board, text, pos, cv2.FONT_HERSHEY_COMPLEX_SMALL, 1,(255,255,255), 1, cv2.LINE_AA)    
-        self.dynamic_board = self.static_board.copy()     
+        self.dynamic_board = self.static_board.copy()
 
     def draw_dynamic_board(self):
+        """
+        Draw the elements of the board that change with each frame,
+        e.g. the cursor or the selected gobbler
+        """
         if self.game.selected_gobbler is None:
             self.draw_cursor()
             return
@@ -246,9 +258,72 @@ class Board:
                 region += 1
             y += self.main_area_height / 3
 
+    def _get_img_from_fig(self, fig, dpi=180):
+        """
+        returns an image as numpy array from figure
+        source: https://stackoverflow.com/questions/7821518/matplotlib-save-plot-to-numpy-array
+        """
+        buf = io.BytesIO()
+        fig.savefig(buf, format="png", dpi=dpi)
+        buf.seek(0)
+        img_arr = np.frombuffer(buf.getvalue(), dtype=np.uint8)
+        buf.close()
+        img = cv2.imdecode(img_arr, 1)
+        return img
+
+    def _bgr2rgbnorm(self, color: tuple) -> tuple:
+        """
+        takes a BGR color (from OpenCV) and converts
+        to a normalized RBG color (for Matplotlib)
+        """
+        b = color[0]
+        g = color[1]
+        r = color[2]
+        return r/255, g/255, b/255
+
+    def get_winner_bar_chart(self, stats):
+        """
+        Given the stats of all previously recorded games,
+        generate a bar chart that shows the winner breakdown
+        """
+        value_counts = stats['winner'].value_counts()
+        try:
+            won_by_0 = value_counts[0]
+        except:
+            won_by_0 = 0
+        try:
+            won_by_1 = value_counts[1]
+        except:
+            won_by_1 = 0
+        players = ['Player 0', 'Player 1']
+        values = [won_by_0, won_by_1]
+        fig = plt.figure(figsize = (3.5, 2.5))
+        plt.bar(players, values, color=[self.blue_rgb, self.orange_rgb], width = 0.3)
+        plt.title('Win Count')
+        img = self._get_img_from_fig(fig)
+        return img
+
+    def get_successful_opening_moves_bar_chart(self, stats):
+        """
+        Given the stats of all previously recorded games,
+        generate a bar chart that shows successful opening moves
+        """
+        value_counts = stats['first_move_winner'].value_counts().to_dict()
+        moves = list(value_counts.keys())
+        counts = list(value_counts.values())
+        if len(moves) > 5:
+            moves = moves[:5]
+            counts = counts[:5]
+        fig = plt.figure(figsize = (4, 4))
+        plt.bar(moves, counts, color='maroon', width = 0.3)
+        plt.title('Successful Openers (Gobbler -> Board Pos.)',)
+        img = self._get_img_from_fig(fig)
+        return img
+
 def main():
     board = Board(Game())
     board.draw_static_board()
+    stats = GameStats()
 
     while True:
         # handle clicks
@@ -260,6 +335,7 @@ def main():
                 gobbler_to_place = board.game.selected_gobbler
                 success, board.winner = board.game.place_selected_gobbler(selected_region)
                 if success:
+                    stats.record_move(gobbler_to_place.size, selected_region,)
                     board.place_gobbler_on_board(gobbler_to_place, selected_region)
                     board.draw_static_board()
         # select a gobbler
@@ -278,10 +354,18 @@ def main():
         if board.winner is not None:
             board.draw_static_board()
             board.draw_winner()
+            stats.write_to_csv(board.winner)
+            stats_all_time = stats.read_stats_from_csv()
+            winner_bar_chart = board.get_winner_bar_chart(stats_all_time)
+            opening_moves_chart = board.get_successful_opening_moves_bar_chart(stats_all_time)
             cv2.imshow('Gobblet Gobblers', board.dynamic_board)
+            cv2.imshow('Wins', winner_bar_chart)
+            cv2.imshow('Opening Moves', opening_moves_chart)
             cv2.waitKey(0)
+            cv2.destroyAllWindows()
             board = Board(Game())
             board.draw_static_board()
+            stats = GameStats()
 
         # show the results
         cv2.imshow('Gobblet Gobblers', board.dynamic_board)
@@ -291,7 +375,6 @@ def main():
         key = cv2.waitKey(30)
         if key == ord('q'):
             break
-    
     # clean up
     cv2.destroyAllWindows()
 

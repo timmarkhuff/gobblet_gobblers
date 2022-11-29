@@ -1,3 +1,6 @@
+import  os
+import pandas as pd
+
 class Game:
     def __init__(self):
         # create the gobblers
@@ -194,3 +197,54 @@ class Gobbler:
         self.board_position = None # integers 0-8 or None
         self.board_position_previous = None # so that it can be placed back where it came from
         self.is_on_top = True
+
+class GameStats:
+    def __init__(self):
+        self.num_turns = 0
+        self.player = 0
+        self.moves = [[],  # a list of lists, one for each player
+                      [],]
+
+    def record_move(self, gobbler_size:int, board_position:int) -> None:
+        self.moves[self.player].append(f'{gobbler_size} to {board_position}')
+        self.num_turns = len(self.moves[0])
+        self.player = int(not self.player)
+
+    def write_to_csv(self, winner) -> None:
+        data_to_record = {
+            'winner': winner,
+            'first_move_0': self.moves[0][0],
+            'first_move_1': self.moves[1][0],
+            'last_move_0': self.moves[0][-1],
+            'last_move_1': self.moves[1][-1],
+            'first_move_winner': self.moves[winner][0],
+            'last_move_winner': self.moves[winner][-1],
+            'num_turns': self.num_turns,
+        }
+
+        path = 'stats.csv'
+        column_headers = ''
+        line_to_write = ''
+        file_is_new = not os.path.exists(path)
+        for k, v in data_to_record.items():
+            if file_is_new:
+                column_headers += f'{k},'
+
+            line_to_write += f'{v},'
+
+        # add linebreaks
+        column_headers += '\n'
+        line_to_write += '\n'
+
+        # write the column headers
+        if file_is_new:
+            with open(path, 'a') as f:
+                f.write(column_headers)
+
+        # write the line
+        with open(path, 'a') as f:
+            f.write(line_to_write)
+
+    def read_stats_from_csv(self) -> pd.DataFrame:
+        return pd.read_csv('stats.csv')
+
