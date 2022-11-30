@@ -320,6 +320,18 @@ class Board:
         img = self._get_img_from_fig(fig)
         return img
 
+    def get_num_turns_chart(self, stats):
+        """
+        Given the stats of all previously recorded games,
+        generate a line graph of the number of turns per game
+        """
+        turns = stats['num_turns'].to_list()
+        fig = plt.figure(figsize = (4, 4))
+        plt.plot(turns, color='blue')
+        plt.title('Num. of Turns Each Game',)
+        img = self._get_img_from_fig(fig)
+        return img
+
 def main():
     board = Board(Game())
     board.draw_static_board()
@@ -358,9 +370,11 @@ def main():
             stats_all_time = stats.read_stats_from_csv()
             winner_bar_chart = board.get_winner_bar_chart(stats_all_time)
             opening_moves_chart = board.get_successful_opening_moves_bar_chart(stats_all_time)
+            num_turns_chart = board.get_num_turns_chart(stats_all_time)
             cv2.imshow('Gobblet Gobblers', board.dynamic_board)
             cv2.imshow('Wins', winner_bar_chart)
             cv2.imshow('Opening Moves', opening_moves_chart)
+            cv2.imshow('Number of Turns', num_turns_chart)
             cv2.waitKey(0)
             cv2.destroyAllWindows()
             board = Board(Game())
