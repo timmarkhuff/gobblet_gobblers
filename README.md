@@ -23,6 +23,9 @@ My version of Gobblers has six unique piece sizes, whereas the traditional versi
 
 ![image](https://user-images.githubusercontent.com/89954856/204674269-c66fdf71-ed73-4e59-a353-b3589366e4c8.png)
 ![image](https://user-images.githubusercontent.com/89954856/204674294-b47e57db-6e77-495f-b8db-2f9f40336bf0.png)
+![image](https://user-images.githubusercontent.com/89954856/204676337-83b04674-3f97-47c8-9262-e84a5f9c4ab0.png)
+
+
 
 
 
