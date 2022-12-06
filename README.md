@@ -14,6 +14,15 @@ My version of Gobblers has six unique piece sizes, whereas the traditional versi
 ![image](https://user-images.githubusercontent.com/89954856/201192702-ecb25f19-eb86-4cc8-a422-227e1c84f882.png)
 ![image](https://user-images.githubusercontent.com/89954856/201192715-bf97b770-e953-4255-a592-850f30be8ca9.png)
 
+## Updates for Week 9 - Lab Submission 
+* added index.html as the homepage of the game
+* added play.html as the UI for an online playable version of the game
+* added stats.html to show some game stats at the end of each game
+* added styles.css to add styling to the aforementioned html pages
+![image](https://user-images.githubusercontent.com/89954856/206042749-9f4dca6f-fb8b-4e12-a3a6-dbbc2e653409.png)
+![image](https://user-images.githubusercontent.com/89954856/206042832-9694c475-a1a1-42f5-85c5-77d0a3e1abda.png)
+![image](https://user-images.githubusercontent.com/89954856/206042916-1ae898b0-a64d-4859-ba7b-f3755e87b45a.png)
+
 
 ## Updates for Week 8 - Lab Submission 
 * In logic.py, GameStats class was added to keep track of statistics
