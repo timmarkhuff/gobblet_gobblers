@@ -129,7 +129,7 @@ class Board:
         self.dynamic_board = self.static_board.copy()
 
         # determine the color of the player
-        if self.game.current_player == 0:
+        if self.game.current_player_idx == 0:
             color = self.blue
         else:
             color = self.orange
@@ -200,7 +200,7 @@ class Board:
         y = self.click_coordinate_y
 
         # get a list of the current player's gobblers
-        current_players_gobblers = [g for g in self.game.gobblers if g.player == self.game.current_player]
+        current_players_gobblers = [g for g in self.game.gobblers if g.player == self.game.current_player_idx]
         # sort them such that the bigger gobblers are listed first
         # this is to ensure that they are selected when a gobbler of a smaller size
         # and same player is present beneath

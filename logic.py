@@ -1,8 +1,12 @@
 import  os
 import pandas as pd
+from matplotlib import pyplot as plt
 
 class Game:
     def __init__(self):
+        self.player_names = ['player 0', 'player 1']
+        self.winner = None
+
         # create the gobblers
         number_of_gobblers = 6
         self.gobblers = []
@@ -14,7 +18,7 @@ class Game:
                 size += 1
 
         # initialize some values
-        self.current_player = 0
+        self.current_player_idx = 0
         self.selected_gobbler = None
         # used for keeping track of gobblers on board
         self.board = [[] for n in range(9)]
@@ -31,6 +35,10 @@ class Game:
         ]
 
     def select_gobbler(self, gobbler_size: int) -> bool:
+        # Don't allow any more plays if the game is over
+        if self.winner is not None:
+            return False
+
         # don't allow the player to select a gobbler if one is
         # already selected
         if self.selected_gobbler:
@@ -44,7 +52,7 @@ class Game:
             return False
         
         # gobblers can only be selected if they are on top
-        gobbler = [g for g in self.gobblers if g.player == self.current_player][gobbler_idx]
+        gobbler = [g for g in self.gobblers if g.player == self.current_player_idx][gobbler_idx]
         if not gobbler.is_on_top:
             return False
 
@@ -99,12 +107,24 @@ class Game:
         self._update_on_top()
         
         # toggle the current player
-        self.current_player = int(not self.current_player)
+        self.current_player_idx = int(not self.current_player_idx)
 
         # deselect gobbler
         self.selected_gobbler = None
 
         return True, self._check_for_winner()
+
+    def set_player_names(self, player_names: list) -> list[bool, str]:
+        player_name_0 = player_names[0]
+        player_name_1 = player_names[1]    
+        name_len_requirement = 3
+        if len(player_name_0) < name_len_requirement or len(player_name_1) < name_len_requirement:
+            return False, f'Player names must be at least {name_len_requirement} characters long.'
+        elif player_name_0 == player_name_1:
+            return False, 'Player names cannot be identical.'
+        else:
+            self.player_names = player_names
+            return True, 'Let the games begin!'
 
     def represent_board(self) -> str:
         """
@@ -174,7 +194,8 @@ class Game:
             # we have a winner
             unique_values = list(set(result_to_check))
             if len(unique_values) == 1 and unique_values[0] is not None:
-                return unique_values[0]
+                self.winner = unique_values[0]
+                return self.winner
         
         return None
     
@@ -189,6 +210,16 @@ class Game:
                     gobbler.is_on_top = True
                 else:
                     gobbler.is_on_top = False
+    @property
+    def winner_name(self) -> str:
+        if self.winner is None:
+            return None
+        else:
+            return self.player_names[self.winner]
+
+    @property
+    def current_player_name(self) -> str:
+        return self.player_names[self.current_player_idx]
      
 class Gobbler:
     def __init__(self, player: int, size: int):
@@ -209,6 +240,15 @@ class GameStats:
         self.moves[self.player].append(f'{gobbler_size} to {board_position}')
         self.num_turns = len(self.moves[0])
         self.player = int(not self.player)
+
+    def save(self, winner) -> None:
+        """
+        Save the stats to csv and
+        save some images.
+        """
+        self.write_to_csv(winner)
+        self.read_stats_from_csv()
+        self._save_charts()
 
     def write_to_csv(self, winner) -> None:
         data_to_record = {
@@ -246,5 +286,65 @@ class GameStats:
             f.write(line_to_write)
 
     def read_stats_from_csv(self) -> pd.DataFrame:
-        return pd.read_csv('stats.csv')
+        self.stats = pd.read_csv('stats.csv')
+        return self.stats
 
+    def _save_charts(self) -> None:
+        """
+        saves all of the bar charts
+        """
+
+        chart_funcs = [self._get_winner_bar_chart,
+                    self._get_num_turns_chart,
+                    self._get_successful_opening_moves_bar_chart]
+
+        for func in chart_funcs:
+            func()
+
+    def _get_winner_bar_chart(self) -> None:
+        """
+        Given the stats of all previously recorded games,
+        generate a bar chart that shows the winner breakdown
+        """
+        value_counts = self.stats['winner'].value_counts()
+        try:
+            won_by_0 = value_counts[0]
+        except:
+            won_by_0 = 0
+        try:
+            won_by_1 = value_counts[1]
+        except:
+            won_by_1 = 0
+        players = ['Player 0', 'Player 1']
+        values = [won_by_0, won_by_1]
+        plt.figure(figsize = (4, 4))
+        plt.bar(players, values, color=[(0,0,1), (1,191/255,0)], width = 0.3)
+        plt.title('Win Count')
+        plt.savefig('static/winners.png')
+
+    def _get_successful_opening_moves_bar_chart(self) -> None:
+        """
+        Given the stats of all previously recorded games,
+        generate a bar chart that shows successful opening moves
+        """
+        value_counts = self.stats['first_move_winner'].value_counts().to_dict()
+        moves = list(value_counts.keys())
+        counts = list(value_counts.values())
+        if len(moves) > 5:
+            moves = moves[:5]
+            counts = counts[:5]
+        plt.figure(figsize = (4, 4))
+        plt.bar(moves, counts, color='maroon', width = 0.3)
+        plt.title('Successful Openers (Gobbler -> Board Pos.)',)
+        plt.savefig('static/opening_moves.png')
+
+    def _get_num_turns_chart(self) -> None:
+        """
+        Given the stats of all previously recorded games,
+        generate a line graph of the number of turns per game
+        """
+        turns = self.stats['num_turns'].to_list()
+        plt.figure(figsize = (4, 4))
+        plt.plot(turns, color='blue')
+        plt.title('Num. of Turns Each Game',)
+        plt.savefig('static/num_turns.png')

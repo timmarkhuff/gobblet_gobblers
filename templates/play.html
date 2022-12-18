@@ -1,0 +1,62 @@
+<link rel="stylesheet" href="/static/styles.css">
+
+<h1>Gobblet Gobblers</h1>
+
+{% if game.winner != None %}
+<p class="player{{ game.winner }}"> {{ game.winner_name }} is the winner!</p>
+{% elif message != None %}
+<p> {{ message }}</p>
+{% endif %}
+
+{% if game.winner == None %}
+<p><span class="player{{ game.current_player_idx }}">{{ game.current_player_name }}</span>, it's your turn.</p>
+<form method="post">
+  <label>
+    Gobbler size (1-6):
+    <input type="text" name="gobbler_size">
+  </label>
+  <label>
+    Board Postion (1-9):
+    <input type="text" name="board_position">
+  </label>
+  <input type="submit" name="button" value="Play">
+</form>
+{% endif %}
+
+<label>Game Board </label>
+<table width="200" border="1">
+  {% for position in game.board %}
+    {% if loop.index0 % 3 == 0 %}
+    <tr>
+    {% endif %}
+    
+    {% if position|length == 0 %}
+    <td><span>_</span></td>
+    {% else %}
+    <td><span class="player{{ (position|last).player }}">{{ (position|last).size }}</span></td>
+    {% endif %}
+    
+    {% if loop.index0 % 3 == 2 %}
+    </tr>
+    {% endif %}
+  {% endfor%}
+</table>
+
+{% if game.winner == None %}
+<label>Available gobblers: </label>
+<p class="player{{ game.current_player_idx}}">
+  {% for gobbler in game.gobblers%}
+    {% if gobbler.player == game.current_player_idx and gobbler.board_position == None %}
+      {{ gobbler.size }}
+    {% elif gobbler.player == game.current_player_idx and gobbler.board_position != None %}
+    _
+    {% endif %}
+  {% endfor%}
+</p>
+{% else %}
+<p>What would you like to do next?</p>
+<form method="post">
+  <input type="submit" name="button" value="New Game">
+  <input type="submit" name="button" value="View Stats">
+</form>
+{% endif %}

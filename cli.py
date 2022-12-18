@@ -51,7 +51,7 @@ while True:
     # start a match
     while winner is None:
         # select gobbler
-        current_player = players[game.current_player]
+        current_player = players[game.current_player_idx]
         print(game.represent_board())
 
         while winner is None:
