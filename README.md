@@ -1,8 +1,8 @@
 # Gobblet Gobblers
 
-Lab submission for TECHIN 509
-
 Based on the game Gobblet Gobblers: https://themindcafe.com.sg/wp-content/uploads/2018/07/Gobblet-Gobblers.pdf
+
+A short video introduction to this project is available here: https://youtu.be/0lpivm_qItg
 
 My version of Gobblers has six unique piece sizes, whereas the traditional version only has 3. 
 
